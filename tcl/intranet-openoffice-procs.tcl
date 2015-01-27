@@ -342,6 +342,7 @@ ad_proc -public intranet_openoffice::invoices_pdfs {
     set outputheaders [ns_conn outputheaders]
     ns_set cput $outputheaders "Content-Disposition" "attachment; filename=$output_filename"
     ns_returnfile 200 [lindex $pdf_info 0] [lindex $pdf_info 1]
+    file delete [lindex $pdf_info 1]
 }
 
 ad_proc -public -callback im_timesheet_report_filter -impl intranet-openoffice-spreadsheet {
