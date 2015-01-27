@@ -305,13 +305,14 @@ ad_proc -public intranet_openoffice::invoice_pdf {
 
 ad_proc -public intranet_openoffice::invoices_pdfs {
     {-invoice_ids:required}
+    {-order_by "invoice_nr asc"}
 } {
     Returns a JOINED PDF of all the invoices provided
 } {
     set filenames [list]
     set output_filename "Invoices.pdf"
 
-    db_foreach invoice_ids "select invoice_id,invoice_nr,last_modified from im_invoices,acs_objects where object_id = invoice_id and invoice_id in ([template::util::tcl_to_sql_list $invoice_ids]) order by invoice_nr asc " {
+    db_foreach invoice_ids "select invoice_id,invoice_nr,acs_objects.last_modified from im_invoices,acs_objects,im_costs c where object_id = invoice_id and cost_id = invoice_id and invoice_id in ([template::util::tcl_to_sql_list $invoice_ids]) order by $order_by" {
 	set invoice_item_id [content::item::get_id_by_name -name "${invoice_nr}.pdf" -parent_id $invoice_id]
 
 	if {"" == $invoice_item_id} {
