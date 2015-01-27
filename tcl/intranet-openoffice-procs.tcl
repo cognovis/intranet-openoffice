@@ -303,6 +303,46 @@ ad_proc -public intranet_openoffice::invoice_pdf {
     return $file_revision_id
 }
 
+ad_proc -public intranet_openoffice::invoices_pdfs {
+    {-invoice_ids:required}
+} {
+    Returns a JOINED PDF of all the invoices provided
+} {
+    set filenames [list]
+    set output_filename "Invoices.pdf"
+
+    db_foreach invoice_ids "select invoice_id,invoice_nr,last_modified from im_invoices,acs_objects where object_id = invoice_id and invoice_id in ([template::util::tcl_to_sql_list $invoice_ids]) order by invoice_nr asc " {
+	set invoice_item_id [content::item::get_id_by_name -name "${invoice_nr}.pdf" -parent_id $invoice_id]
+
+	if {"" == $invoice_item_id} {
+	    set invoice_revision_id [intranet_openoffice::invoice_pdf -invoice_id $invoice_id]
+	    set invoice_item_id [content::item::get_id_by_name -name "${invoice_nr}.pdf" -parent_id $invoice_id]
+	}
+	
+	if {![file exists "/tmp/${invoice_nr}.pdf"]} {
+	    lappend filenames  [fs::publish_object_to_file_system  -object_id $invoice_item_id -path /tmp]
+	} else {
+	    lappend filenames "/tmp/${invoice_nr}.pdf"
+	}
+    }
+    if {[catch {intranet_oo::join_pdf -filenames $filenames -no_import} pdf_info]} {
+	foreach filename $filenames {
+	    exec zip -j /tmp/invoices.zip $filename
+	}
+	set pdf_info [list "application/zip" "/tmp/invoices.zip"]
+	set output_filename "Invoices.zip"
+    }
+
+    # Delete the original PDFs
+    foreach filename $filenames {
+        file delete $filename
+    }
+
+    set outputheaders [ns_conn outputheaders]
+    ns_set cput $outputheaders "Content-Disposition" "attachment; filename=$output_filename"
+    ns_returnfile 200 [lindex $pdf_info 0] [lindex $pdf_info 1]
+}
+
 ad_proc -public -callback im_timesheet_report_filter -impl intranet-openoffice-spreadsheet {
     {-form_id:required}
 } {
