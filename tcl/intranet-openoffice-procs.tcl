@@ -130,8 +130,15 @@ ad_proc -public intranet_openoffice::spreadsheet {
         append __output "<table:table-row table:style-name=\"ro1\">\n"
         
         foreach variable $variables {
-            set value [set $variable]
-            eval $code
+            switch $datatype_arr($variable) {
+		tcl_code {
+		    # do nothing
+		}
+		default {
+		    set value [set $variable]
+		    eval $code
+		}
+	    }
             switch $datatype_arr($variable) {
                 date {
                     append __output " <table:table-cell office:value-type=\"date\" office:date-value=\"[lc_time_fmt $value %F]\"></table:table-cell>\n"
@@ -151,6 +158,10 @@ ad_proc -public intranet_openoffice::spreadsheet {
 		category_pretty {
 		    set category_pretty [im_category_from_id $value]
 		    append __output " <table:table-cell office:value-type=\"string\"><text:p>$category_pretty</text:p></table:table-cell>\n"
+		}
+		tcl_code {
+		    set tcl_value [eval $variable]
+		    append __output " <table:table-cell office:value-type=\"string\"><text:p>$tcl_value</text:p></table:table-cell>\n"
 		}
                 default {
                     append __output " <table:table-cell office:value-type=\"string\"><text:p>$value</text:p></table:table-cell>\n"
