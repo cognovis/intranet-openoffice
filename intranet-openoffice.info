@@ -9,11 +9,11 @@
     <implements-subsite-p>f</implements-subsite-p>
     <inherit-templates-p>f</inherit-templates-p>
     
-    <version name="4.0.2.0.0" url="http://openacs.org/repository/download/apm/intranet-openoffice-4.0.2.0.0.apm">
+    <version name="4.1.0.0.0" url="http://openacs.org/repository/download/apm/intranet-openoffice-4.1.0.0.0.apm">
         <owner url="mailto:malte.sussdorff@cognovis.de">Malte Sussdorff</owner>
         <maturity>0</maturity>
 
-        <provides url="intranet-openoffice" version="4.0.2.0.0"/>
+        <provides url="intranet-openoffice" version="4.1.0.0.0"/>
 
         <callbacks>
         </callbacks>

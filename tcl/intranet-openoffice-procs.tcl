@@ -130,15 +130,8 @@ ad_proc -public intranet_openoffice::spreadsheet {
         append __output "<table:table-row table:style-name=\"ro1\">\n"
         
         foreach variable $variables {
-            switch $datatype_arr($variable) {
-		tcl_code {
-		    # do nothing
-		}
-		default {
-		    set value [set $variable]
-		    eval $code
-		}
-	    }
+            set value [set $variable]
+            eval $code
             switch $datatype_arr($variable) {
                 date {
                     append __output " <table:table-cell office:value-type=\"date\" office:date-value=\"[lc_time_fmt $value %F]\"></table:table-cell>\n"
@@ -159,10 +152,6 @@ ad_proc -public intranet_openoffice::spreadsheet {
 		    set category_pretty [im_category_from_id $value]
 		    append __output " <table:table-cell office:value-type=\"string\"><text:p>$category_pretty</text:p></table:table-cell>\n"
 		}
-		tcl_code {
-		    set tcl_value [eval $variable]
-		    append __output " <table:table-cell office:value-type=\"string\"><text:p>$tcl_value</text:p></table:table-cell>\n"
-		}
                 default {
                     append __output " <table:table-cell office:value-type=\"string\"><text:p>$value</text:p></table:table-cell>\n"
                 }
@@ -172,119 +161,6 @@ ad_proc -public intranet_openoffice::spreadsheet {
     }
 
     intranet_oo::parse_content -template_file_path $ods_file -output_filename $output_filename
-}
-
-
-ad_proc -public -callback im_timesheet_task_list_before_render -impl intranet-openoffice-spreadsheet {
-    {-view_name:required}
-    {-view_type:required}
-    {-sql:required}
-    {-table_header ""}
-} {
-    Depending on the view_type return a spreadsheet in Excel / Openoffice or PDF
-} {
- 
-    # Only execute for view types which are supported
-    if {[lsearch [list xls pdf ods] $view_type] > -1} {
-        intranet_openoffice::spreadsheet -view_name $view_name -sql $sql -output_filename "tasks.$view_type" -table_name "$table_header"
-        ad_script_abort
-    }
-}
-
-ad_proc -public -callback im_projects_index_filter -impl intranet-openoffice-spreadsheet {
-    {-form_id:required}
-} {
-    Add the filter for the view_type
-} {
-    uplevel {
-        set view_type_options [concat $view_type_options [list [list Excel xls]] [list [list Openoffice ods]] [list [list PDF pdf]]]
-    }
-}
-
-ad_proc -public -callback im_companies_index_filter -impl intranet-openoffice-spreadsheet {
-    {-form_id:required}
-} {
-    Add the filter for the view_type
-} {
-    uplevel {
-        set view_type_options [concat $view_type_options [list [list Excel xls]] [list [list Openoffice ods]] [list [list PDF pdf]]]
-    }
-}
-
-ad_proc -public -callback im_timesheet_tasks_index_filter -impl intranet-openoffice-spreadsheet {
-    {-form_id:required}
-} {
-    Add the filter for the view_type
-} {
-    uplevel {
-        set view_type_options [concat $view_type_options [list [list Excel xls]] [list [list Openoffice ods]] [list [list PDF pdf]]]
-    }
-}
-
-
-ad_proc -public -callback im_projects_index_before_render -impl intranet-openoffice-spreadsheet {
-    {-view_name:required}
-    {-view_type:required}
-    {-sql:required}
-    {-table_header ""}
-    {-variable_set ""}
-} {
-    Depending on the view_type return a spreadsheet in Excel / Openoffice or PDF
-} {
- 
-    # Only execute for view types which are supported
-    if {[lsearch [list xls pdf ods] $view_type] > -1} {
-        intranet_openoffice::spreadsheet -view_name $view_name -sql $sql -output_filename "projects.$view_type" -table_name "$table_header" -variable_set $variable_set
-        ad_script_abort
-    }
-}
-
-ad_proc -public -callback im_invoices_index_before_render -impl intranet-openoffice-spreadsheet {
-    {-view_name:required}
-    {-view_type:required}
-    {-sql:required}
-    {-table_header ""}
-    {-variable_set ""}
-} {
-    Depending on the view_type return a spreadsheet in Excel / Openoffice or PDF
-} {
- 
-    upvar 1 cost_type_id invoice_type_id
-    set invoice_type [im_category_from_id $invoice_type_id]
-    # Only execute for view types which are supported
-    if {[lsearch [list xls pdf ods] $view_type] > -1} {
-        intranet_openoffice::spreadsheet -view_name $view_name -sql $sql -output_filename "${invoice_type}-list.$view_type" -table_name "$table_header" -variable_set $variable_set
-        ad_script_abort
-    }
-}
-
-ad_proc -public -callback im_companies_index_before_render -impl intranet-openoffice-spreadsheet {
-    {-view_name:required}
-    {-view_type:required}
-    {-sql:required}
-    {-table_header ""}
-    {-variable_set ""}
-} {
-    Depending on the view_type return a spreadsheet in Excel / Openoffice or PDF
-} {
- 
-    # Only execute for view types which are supported
-    if {[lsearch [list xls pdf ods] $view_type] > -1} {
-        intranet_openoffice::spreadsheet -view_name $view_name -sql $sql -output_filename "projects.$view_type" -table_name "$table_header" -variable_set $variable_set
-        ad_script_abort
-    }
-}
-
-ad_proc -public -callback im_invoices_after_create -impl intranet-openoffice-pdf-invoice {
-    {-object_type:required}
-    {-object_id:required}
-    {-status_id:required}
-    {-type_id:required}
-} {
-    Generate a PDF for the created invoice document and attach the PDF to the invoice
-    
-    Use the content repository for this and make sure you create new revisions not new files.
-} {
 }
 
 ad_proc -public intranet_openoffice::invoice_pdf {
@@ -354,31 +230,4 @@ ad_proc -public intranet_openoffice::invoices_pdfs {
     ns_set cput $outputheaders "Content-Disposition" "attachment; filename=$output_filename"
     ns_returnfile 200 [lindex $pdf_info 0] [lindex $pdf_info 1]
     file delete [lindex $pdf_info 1]
-}
-
-ad_proc -public -callback im_timesheet_report_filter -impl intranet-openoffice-spreadsheet {
-    {-form_id:required}
-} {
-    Add the filter for the output_format
-} {
-    uplevel {
-        set output_format_options [concat $output_format_options [list [list Excel xls]] [list [list Openoffice ods]] [list [list PDF pdf]]]
-    }
-}
-
-ad_proc -public -callback im_timesheet_report_before_render -impl intranet-openoffice-spreadsheet {
-    {-view_name:required}
-    {-view_type:required}
-    {-sql:required}
-    {-table_header ""}
-    {-variable_set ""}
-} {
-    Depending on the view_type return a spreadsheet in Excel / Openoffice or PDF
-} {
- 
-    # Only execute for view types which are supported
-    if {[lsearch [list xls pdf ods] $view_type] > -1} {
-        intranet_openoffice::spreadsheet -view_name $view_name -sql $sql -output_filename "timesheet.$view_type" -table_name "$table_header" -variable_set $variable_set
-        ad_script_abort
-    }
 }
